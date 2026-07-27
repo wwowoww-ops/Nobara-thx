@@ -13,7 +13,7 @@ const app = express();
 const PORT = process.env.PORT || 28140;
 
 // سيرفر الاستمرارية (ضروري جداً لريندر عشان ما يطفي)
-app.get('/', (req, res) => res.status(200).send('ＮＯＢＡＲＡ • ＯＮＬＩＮＥ ⚡'));
+app.get('/', (req, res) => res.status(200).send('akira • ONLINE ⚡'));
 app.listen(PORT, () => console.log(chalk.cyan(`[Server] Web Server is running on port ${PORT}`)));
 
 const commands = new Map();
@@ -21,7 +21,7 @@ const events = new Map();
 const commandsDir = path.join(__dirname, 'scripts', 'commands');
 const eventsDir = path.join(__dirname, 'scripts', 'events');
 
-const abstractBox = chalk.hex('#55FFFF')('═══════════════✨ＮＯＢＡＲＡ✨═══════════════');
+const abstractBox = chalk.hex('#55FFFF')('═══════════════✨akira✨═══════════════');
 
 // --- تحميل الأوامر والأحداث ---
 fs.readdirSync(commandsDir).forEach(file => {
@@ -31,6 +31,9 @@ fs.readdirSync(commandsDir).forEach(file => {
     console.log(chalk.green(`✨ Loaded Command: ${command.config.name}`));
   }
 });
+
+// ✅ إضافة global.commands هنا
+global.commands = commands;
 
 if (fs.existsSync(eventsDir)) {
   fs.readdirSync(eventsDir).forEach(file => {
