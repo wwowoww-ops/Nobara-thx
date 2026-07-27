@@ -4,26 +4,26 @@ module.exports.config = {
   name: "لاست",
   aliases: ["list", "groups"],
   version: "1.0",
-  credits: "أبو هريرة",
+  author: "أبو هريرة",
   countDown: 5,
-  role: 2,
+  adminOnly: false,
   description: "عرض قائمة المجموعات والخروج منها",
-  commandCategory: "developer",
-  usages: "لاست",
-  cooldowns: 5
+  category: "المطور",
+  guide: "{pn}",
+  usePrefix: true,
 };
 
 module.exports.run = async function ({ api, event }) {
   const { threadID, messageID, senderID } = event;
 
   try {
-    // التحقق من المطور
-    const config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
-    const adminUID = config.adminUIDs?.[0] || "61578581225040";
+
+    // ايدي المطور
+    const adminUID = "61578581225040";
 
     if (senderID != adminUID) {
       return api.sendMessage(
-        `⌬ ━━ akira ━━ ⌬\n\n⛔ هذا الأمر للمطور فقط!`,
+        "⚠️ هذا الأمر خاص بالمطور فقط.",
         threadID,
         messageID
       );
@@ -40,13 +40,13 @@ module.exports.run = async function ({ api, event }) {
 
     if (groupList.length == 0) {
       return api.sendMessage(
-        `⌬ ━━ akira ━━ ⌬\n\n⚠️ البوت ليس داخل أي مجموعة.`,
+        "⚠️ البوت ليس داخل أي مجموعة.",
         threadID,
         messageID
       );
     }
 
-    let msg = `⌬ ━━ akira GROUPS ━━ ⌬\n\n📋 قائمة المجموعات (${groupList.length}):\n\n`;
+    let msg = "📋 | قائمة المجموعات\n\n";
 
     groupList.forEach((group, index) => {
       msg += `${index + 1}. ${group.name || "بدون اسم"}\n`;
@@ -59,7 +59,6 @@ module.exports.run = async function ({ api, event }) {
       msg,
       threadID,
       (err, info) => {
-        if (err) return;
 
         global.client.handleReply.push({
           name: this.config.name,
@@ -69,15 +68,19 @@ module.exports.run = async function ({ api, event }) {
         });
 
         api.setMessageReaction("✅", messageID, () => {}, true);
+
       },
       messageID
     );
 
   } catch (error) {
-    console.log(chalk.red(`[AKIRA LIST ERROR] ${error.message}`));
+
+    console.log(chalk.red(`[LIST ERROR] ${error.message}`));
+
     api.setMessageReaction("❌", messageID, () => {}, true);
+
     api.sendMessage(
-      `⌬ ━━ akira ━━ ⌬\n\n⚠️ حدث خطأ في النظام.\n📝 ${error.message}`,
+      "⚠️ حدث خطأ في النظام.",
       threadID,
       messageID
     );
@@ -88,13 +91,14 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
   const { threadID, messageID, senderID, body } = event;
 
   try {
+
     if (senderID != handleReply.author) return;
 
     const index = parseInt(body);
 
     if (isNaN(index)) {
       return api.sendMessage(
-        `⌬ ━━ akira ━━ ⌬\n\n⚠️ اكتب رقم صحيح.`,
+        "⚠️ اكتب رقم صحيح.",
         threadID,
         messageID
       );
@@ -104,7 +108,7 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
 
     if (!selectedGroup) {
       return api.sendMessage(
-        `⌬ ━━ akira ━━ ⌬\n\n⚠️ هذا الرقم غير موجود.`,
+        "⚠️ هذا الرقم غير موجود.",
         threadID,
         messageID
       );
@@ -117,18 +121,22 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
       api.getCurrentUserID(),
       selectedGroup.threadID,
       (err) => {
+
         if (err) {
+
           api.setMessageReaction("❌", messageID, () => {}, true);
+
           return api.sendMessage(
-            `⌬ ━━ akira ━━ ⌬\n\n⚠️ فشل الخروج من المجموعة.\n📝 ${err.message}`,
+            "⚠️ ما قدرتش نخرج من المجموعة.",
             threadID,
             messageID
           );
         }
 
         api.setMessageReaction("✅", messageID, () => {}, true);
+
         return api.sendMessage(
-          `⌬ ━━ akira ━━ ⌬\n\n✅ تم خروج البوت من:\n📌 ${selectedGroup.name}`,
+          `✅ تم خروج البوت من:\n${selectedGroup.name}`,
           threadID,
           messageID
         );
@@ -136,10 +144,13 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
     );
 
   } catch (error) {
-    console.log(chalk.red(`[AKIRA REPLY ERROR] ${error.message}`));
+
+    console.log(chalk.red(`[HANDLE REPLY ERROR] ${error.message}`));
+
     api.setMessageReaction("❌", messageID, () => {}, true);
+
     api.sendMessage(
-      `⌬ ━━ akira ━━ ⌬\n\n⚠️ حدث خطأ أثناء التنفيذ.\n📝 ${error.message}`,
+      "⚠️ حدث خطأ أثناء التنفيذ.",
       threadID,
       messageID
     );
