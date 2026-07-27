@@ -8,15 +8,15 @@ const GAY_API_URL = 'https://nexalo-api.vercel.app/api/gay';
 
 module.exports.config = {
   name: "قاي",
-  aliases: ["gay", "قاي"],
+  aliases: ["gay", "غاي"],
   version: "1.0",
-  author: "سينكو",
+  credits: "أبو هريرة",
   countDown: 5,
-  adminOnly: false,
-  description: "وضع علم المثليين على صورة شخص تمنشنه 🌈",
-  category: "ترفيه",
-  guide: "{pn} @منشن",
-  usePrefix: true
+  hasPermssion: 0,
+  description: "وضع علم المثليين على صورة شخص تمنشنه أو ترد عليه 🌈",
+  commandCategory: "fun",
+  usages: "قاي [@منشن] أو رد على رسالة",
+  cooldowns: 5
 };
 
 function getProfilePictureURL(userID, size = [512, 512]) {
@@ -25,19 +25,44 @@ function getProfilePictureURL(userID, size = [512, 512]) {
 }
 
 module.exports.run = async function({ api, event }) {
-  const { threadID, messageID, mentions } = event;
+  const { threadID, messageID, mentions, messageReply } = event;
 
   try {
-    const mentionIDs = Object.keys(mentions);
-    if (mentionIDs.length === 0) {
-      return api.sendMessage("يا برو، لازم تمنشن شخص عشان نكشفه! 😭", threadID, messageID);
+    let targetID;
+    let targetName;
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ✅ الحالة 1: رد على رسالة
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (messageReply) {
+      targetID = messageReply.senderID;
+      try {
+        const userInfo = await api.getUserInfo(targetID);
+        targetName = userInfo[targetID]?.name || "المستخدم";
+      } catch (e) {
+        targetName = "المستخدم";
+      }
+    }
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ✅ الحالة 2: منشن
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    else if (Object.keys(mentions).length > 0) {
+      targetID = Object.keys(mentions)[0];
+      targetName = mentions[targetID];
+    }
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ❌ لا يوجد مستهدف
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    else {
+      return api.sendMessage(
+        `⌬ ━━ akira ━━ ⌬\n\n⚠️ لازم تمنشن شخص أو ترد على رسالته عشان نكشفه! 😭`,
+        threadID,
+        messageID
+      );
     }
 
     // تفاعل "ساعة" عند البدء
     api.setMessageReaction("⏳", messageID, () => {}, true);
-
-    const targetID = mentionIDs[0];
-    const targetName = mentions[targetID];
 
     const imageURL = getProfilePictureURL(targetID);
 
@@ -69,7 +94,7 @@ module.exports.run = async function({ api, event }) {
       });
 
       const msg = {
-        body: `🌈 انظروا ماذا وجدت.. لقد تم كشفك يا: ${targetName} 😂`,
+        body: `⌬ ━━ akira ━━ ⌬\n\n🌈 انظروا ماذا وجدت.. لقد تم كشفك يا: ${targetName} 😂`,
         attachment: fs.createReadStream(filePath),
         mentions: [
           {
@@ -81,7 +106,6 @@ module.exports.run = async function({ api, event }) {
 
       api.sendMessage(msg, threadID, (err) => {
         if (!err) {
-          // تفاعل "صح" عند النجاح
           api.setMessageReaction("✅", messageID, () => {}, true);
         }
 
@@ -95,9 +119,12 @@ module.exports.run = async function({ api, event }) {
     }
 
   } catch (error) {
-    // تفاعل "خطأ" عند الفشل
     api.setMessageReaction("❌", messageID, () => {}, true);
     console.error("[خطأ في أمر قاي]", error.message);
-    api.sendMessage("⚠️ فشل معالجة الصورة، حاول مرة أخرى.", threadID, messageID);
+    api.sendMessage(
+      `⌬ ━━ akira ━━ ⌬\n\n⚠️ فشل معالجة الصورة، حاول مرة أخرى.\n📝 ${error.message}`,
+      threadID,
+      messageID
+    );
   }
 };
