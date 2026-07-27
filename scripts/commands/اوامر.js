@@ -1,26 +1,27 @@
 module.exports = {
   config: {
     name: "help",
-    aliases: ["الاوامر", "أوامر", "اوامر", "المساعدة"],
-    version: "1.5.0",
-    author: "Nobara Developer",
+    aliases: ["اوامر", "أوامر", "المساعدة"],
+    version: "1.0.0",
+    author: "أبو هريرة",
     countDown: 5,
     role: 0,
     usePrefix: true,
-    description: "يعرض قائمة الأوامر أو تفاصيل أمر معين.",
-    category: "system",
-    guide: "{p}help [command]"
+    description: "عرض قائمة الأوامر أو تفاصيل أمر معين",
+    category: "utility",
+    guide: "{p}help [اسم الأمر]"
   },
 
   run: async ({ api, event, args, config }) => {
     const { threadID, messageID } = event;
+    const prefix = config.prefix || ".";
 
-    const prefix = config.prefix || "!";
+    // جلب الأوامر من المتغير العام
     const allCommands = global.commands || new Map();
 
     if (allCommands.size === 0) {
       return api.sendMessage(
-        "⚠️ لا توجد أوامر محملة حالياً.",
+        `⌬ ━━ akira ━━ ⌬\n\n⚠️ لا توجد أوامر محملة حالياً.`,
         threadID,
         messageID
       );
@@ -29,51 +30,64 @@ module.exports = {
     // عرض تفاصيل أمر معين
     if (args[0]) {
       const name = args[0].toLowerCase();
+      let command = allCommands.get(name);
 
-      const command =
-        allCommands.get(name) ||
-        [...allCommands.values()].find(cmd =>
-          cmd.config?.aliases?.includes(name)
-        );
+      // البحث بالبدائل
+      if (!command) {
+        for (const [cmdName, cmd] of allCommands) {
+          if (cmd.config.aliases && cmd.config.aliases.includes(name)) {
+            command = cmd;
+            break;
+          }
+        }
+      }
 
       if (!command) {
         return api.sendMessage(
-          `❌ الأمر "${name}" غير موجود.`,
+          `⌬ ━━ akira ━━ ⌬\n\n❌ الأمر "${name}" غير موجود.`,
           threadID,
           messageID
         );
       }
 
       const c = command.config;
+      let msg = `⌬ ━━ akira ━━ ⌬\n\n`;
+      msg += `📝 الاسم: ${c.name}\n`;
+      msg += `📄 الوصف: ${c.description || "لا يوجد"}\n`;
+      msg += `🔰 الفئة: ${c.category || "utility"}\n`;
+      msg += `⚙️ الاستخدام: ${c.guide ? c.guide.replace("{p}", prefix) : prefix + c.name}\n`;
+      msg += `⏱️ الانتظار: ${c.countDown || 5} ثانية\n`;
+      msg += `👤 الصلاحية: ${c.role === 0 ? "الجميع" : c.role === 1 ? "المشرفين" : "المطور"}\n`;
+      msg += `✍️ المطور: ${c.author || "أبو هريرة"}`;
 
-      let msg = `✨ [ ${c.name.toUpperCase()} ] ✨\n\n`;
-      msg += `📝 الوصف: ${c.description || "لا يوجد وصف"}\n`;
-      msg += `🔄 الإصدار: ${c.version || "1.0.0"}\n`;
-      msg += `⚙️ يحتاج بادئة: ${c.usePrefix ? "نعم" : "لا"}\n`;
-      msg += `👑 الصلاحية: ${c.role || 0}\n`;
-
-      if (c.aliases?.length) {
-        msg += `🔗 بدائل: ${c.aliases.join(", ")}\n`;
+      if (c.aliases && c.aliases.length > 0) {
+        msg += `\n🔗 بدائل: ${c.aliases.join(", ")}`;
       }
-
-      msg += `📖 الاستخدام: ${c.guide ? c.guide.replace("{p}", prefix) : prefix + c.name}\n`;
 
       return api.sendMessage(msg, threadID, messageID);
     }
 
-    // عرض كل الأوامر
-    let list = [];
+    // عرض قائمة الأوامر
+    const categories = {};
+    for (const [name, cmd] of allCommands) {
+      const category = cmd.config.category || "utility";
+      if (!categories[category]) categories[category] = [];
+      categories[category].push(name);
+    }
 
-    allCommands.forEach(cmd => {
-      list.push(`• ${cmd.config.name}`);
-    });
+    let msg = `⌬ ━━ akira COMMANDS ━━ ⌬\n\n`;
+    msg += `🤖 اسم البوت: ${config.botName || "akira"}\n`;
+    msg += `🔑 البادئة: ${prefix}\n`;
+    msg += `📊 عدد الأوامر: ${allCommands.size}\n\n`;
+    msg += `📂 الفئات:\n\n`;
 
-    let msg = `═════════ HELP ═════════\n\n`;
-    msg += `📊 عدد الأوامر: ${allCommands.size}\n`;
-    msg += `⚡ البادئة: ${prefix}\n\n`;
-    msg += `📜 الأوامر:\n${list.join("\n")}\n\n`;
-    msg += `💡 اكتب: ${prefix}help [اسم الأمر]`;
+    for (const [category, cmds] of Object.entries(categories)) {
+      msg += `「 ${category.toUpperCase()} 」\n`;
+      msg += `${cmds.join(", ")}\n\n`;
+    }
 
-    api.sendMessage(msg, threadID, messageID);
+    msg += `💡 استخدم: ${prefix}help [اسم الأمر] للمزيد`;
+
+    return api.sendMessage(msg, threadID, messageID);
   }
 };
