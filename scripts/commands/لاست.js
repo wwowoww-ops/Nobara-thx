@@ -17,7 +17,6 @@ module.exports.run = async function ({ api, event }) {
   const { threadID, messageID, senderID } = event;
 
   try {
-
     // ايدي المطور
     const adminUID = "61578581225040";
 
@@ -59,6 +58,10 @@ module.exports.run = async function ({ api, event }) {
       msg,
       threadID,
       (err, info) => {
+        if (err) return;
+
+        // ✅ تخزين القائمة في global
+        global.groupList = groupList;
 
         global.client.handleReply.push({
           name: this.config.name,
@@ -68,17 +71,13 @@ module.exports.run = async function ({ api, event }) {
         });
 
         api.setMessageReaction("✅", messageID, () => {}, true);
-
       },
       messageID
     );
 
   } catch (error) {
-
     console.log(chalk.red(`[LIST ERROR] ${error.message}`));
-
     api.setMessageReaction("❌", messageID, () => {}, true);
-
     api.sendMessage(
       "⚠️ حدث خطأ في النظام.",
       threadID,
@@ -91,19 +90,55 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
   const { threadID, messageID, senderID, body } = event;
 
   try {
-
     if (senderID != handleReply.author) return;
 
-    const index = parseInt(body);
+    // ✅ البحث بالرقم
+    let index = parseInt(body);
 
+    // ✅ إذا كان الإدخال نص (اسم المجموعة)
     if (isNaN(index)) {
-      return api.sendMessage(
-        "⚠️ اكتب رقم صحيح.",
-        threadID,
-        messageID
+      const groupName = body.trim();
+      const foundGroup = handleReply.groups.find(
+        g => g.name && g.name.toLowerCase() === groupName.toLowerCase()
       );
+
+      if (!foundGroup) {
+        return api.sendMessage(
+          `⚠️ لا توجد مجموعة بهذا الاسم.\n📌 استخدم رقم المجموعة من القائمة.`,
+          threadID,
+          messageID
+        );
+      }
+
+      // ✅ الخروج باستخدام الاسم
+      api.setMessageReaction("⏳", messageID, () => {}, true);
+
+      api.removeUserFromGroup(
+        api.getCurrentUserID(),
+        foundGroup.threadID,
+        (err) => {
+          if (err) {
+            api.setMessageReaction("❌", messageID, () => {}, true);
+            return api.sendMessage(
+              `⚠️ فشل الخروج من المجموعة: ${foundGroup.name}`,
+              threadID,
+              messageID
+            );
+          }
+
+          api.setMessageReaction("✅", messageID, () => {}, true);
+          return api.sendMessage(
+            `✅ تم خروج البوت من:\n📌 ${foundGroup.name}`,
+            threadID,
+            messageID
+          );
+        }
+      );
+
+      return;
     }
 
+    // ✅ الخروج بالرقم
     const selectedGroup = handleReply.groups[index - 1];
 
     if (!selectedGroup) {
@@ -116,27 +151,22 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
 
     api.setMessageReaction("⏳", messageID, () => {}, true);
 
-    // خروج البوت من المجموعة
     api.removeUserFromGroup(
       api.getCurrentUserID(),
       selectedGroup.threadID,
       (err) => {
-
         if (err) {
-
           api.setMessageReaction("❌", messageID, () => {}, true);
-
           return api.sendMessage(
-            "⚠️ ما قدرتش نخرج من المجموعة.",
+            `⚠️ فشل الخروج من المجموعة: ${selectedGroup.name}`,
             threadID,
             messageID
           );
         }
 
         api.setMessageReaction("✅", messageID, () => {}, true);
-
         return api.sendMessage(
-          `✅ تم خروج البوت من:\n${selectedGroup.name}`,
+          `✅ تم خروج البوت من:\n📌 ${selectedGroup.name}`,
           threadID,
           messageID
         );
@@ -144,11 +174,8 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
     );
 
   } catch (error) {
-
     console.log(chalk.red(`[HANDLE REPLY ERROR] ${error.message}`));
-
     api.setMessageReaction("❌", messageID, () => {}, true);
-
     api.sendMessage(
       "⚠️ حدث خطأ أثناء التنفيذ.",
       threadID,
