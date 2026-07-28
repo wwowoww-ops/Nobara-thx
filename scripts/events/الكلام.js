@@ -8,7 +8,7 @@ module.exports = {
     // التأكد من أن الحدث هو رسالة
     if (event.type !== "message" && event.type !== "message_reply") return;
 
-    const { threadID, senderID, messageID, body } = event;
+    const { threadID, senderID, messageID } = event;
 
     try {
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -53,12 +53,21 @@ module.exports = {
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       // 🗑️ حذف الرسالة
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      await api.unsendMessage(messageID);
+      try {
+        await api.unsendMessage(messageID);
+      } catch (e) {
+        console.log(chalk.yellow(`[AKIRA] فشل حذف الرسالة: ${e.message}`));
+      }
 
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       // 🚫 طرد العضو فوراً
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      await api.removeUserFromGroup(senderID, threadID);
+      try {
+        await api.removeUserFromGroup(senderID, threadID);
+      } catch (e) {
+        console.log(chalk.red(`[AKIRA] فشل طرد العضو: ${e.message}`));
+        return;
+      }
 
       // جلب اسم العضو
       let userName = "عضو";
