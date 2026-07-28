@@ -6,20 +6,19 @@ module.exports.config = {
   name: "موافقة",
   aliases: ["approve", "approval"],
   version: "1.0",
-  author: "سينكو",
+  credits: "أبو هريرة",
   countDown: 5,
-  adminOnly: false,
+  hasPermssion: 1,
   description: "تشغيل أو إيقاف ميزة موافقة الأعضاء",
-  category: "إدارة",
-  guide: "{pn} تشغيل / ايقاف",
-  usePrefix: true,
+  commandCategory: "admin",
+  usages: "موافقة [تشغيل/إيقاف]",
+  cooldowns: 5
 };
 
-module.exports.run = async function ({ api, event }) {
-  const { threadID, messageID, senderID, body } = event;
+module.exports.run = async function ({ api, event, args }) {
+  const { threadID, messageID, senderID } = event;
 
   try {
-
     api.setMessageReaction("⏳", messageID, () => {}, true);
 
     // معلومات المجموعة
@@ -32,9 +31,8 @@ module.exports.run = async function ({ api, event }) {
 
     if (!isAdmin) {
       api.setMessageReaction("❌", messageID, () => {}, true);
-
       return api.sendMessage(
-        "⚠️ هذا الأمر للأدمن فقط.",
+        `⌬ ━━ akira ━━ ⌬\n\n⛔ هذا الأمر للأدمن فقط.`,
         threadID,
         messageID
       );
@@ -54,53 +52,51 @@ module.exports.run = async function ({ api, event }) {
 
     let data = JSON.parse(fs.readFileSync(filePath));
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // تشغيل
-    if (body.includes("تشغيل")) {
-
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (args[0] === "تشغيل" || args[0] === "on") {
       data[threadID] = true;
-
       fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 
       api.setMessageReaction("✅", messageID, () => {}, true);
-
       return api.sendMessage(
-        "✅ تم تشغيل ميزة موافقة الأعضاء.",
+        `⌬ ━━ akira ━━ ⌬\n\n✅ تم تشغيل ميزة موافقة الأعضاء.\n📌 سيتم قبول الأعضاء تلقائياً.`,
         threadID,
         messageID
       );
     }
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // إيقاف
-    if (body.includes("ايقاف")) {
-
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (args[0] === "إيقاف" || args[0] === "off") {
       data[threadID] = false;
-
       fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 
       api.setMessageReaction("✅", messageID, () => {}, true);
-
       return api.sendMessage(
-        "✅ تم إيقاف ميزة موافقة الأعضاء.",
+        `⌬ ━━ akira ━━ ⌬\n\n✅ تم إيقاف ميزة موافقة الأعضاء.\n📌 لن يتم قبول الأعضاء تلقائياً.`,
         threadID,
         messageID
       );
     }
 
-    // دليل الاستخدام
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // عرض الحالة
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const status = data[threadID] ? "مفعل ✅" : "معطل ❌";
     return api.sendMessage(
-      "📌 الاستخدام:\n• موافقة تشغيل\n• موافقة ايقاف",
+      `⌬ ━━ akira ━━ ⌬\n\n📊 حالة موافقة الأعضاء: ${status}\n\n📝 الاستخدام:\n• موافقة تشغيل (لتفعيل)\n• موافقة إيقاف (لإلغاء)`,
       threadID,
       messageID
     );
 
   } catch (error) {
-
-    console.log(chalk.red(`[APPROVAL ERROR] ${error.message}`));
-
+    console.log(chalk.red(`[AKIRA APPROVAL ERROR] ${error.message}`));
     api.setMessageReaction("❌", messageID, () => {}, true);
-
     api.sendMessage(
-      "⚠️ حدث خطأ في النظام.",
+      `⌬ ━━ akira ━━ ⌬\n\n⚠️ حدث خطأ في النظام.\n📝 ${error.message}`,
       threadID,
       messageID
     );
