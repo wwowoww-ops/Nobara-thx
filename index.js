@@ -32,6 +32,7 @@ fs.readdirSync(commandsDir).forEach(file => {
   }
 });
 
+// ✅ إضافة global.commands هنا
 global.commands = commands;
 
 // --- تحميل الأحداث ---
@@ -45,7 +46,7 @@ if (fs.existsSync(eventsDir)) {
   });
 }
 
-console.log(chalk.cyan(`📊 عدد الأحداث: ${events.size}`));
+console.log(chalk.cyan(`📊 عدد الأوامر: ${commands.size} | عدد الأحداث: ${events.size}`));
 
 // --- تشغيل البوت ---
 fca({ appState }, (err, api) => {
@@ -108,12 +109,11 @@ fca({ appState }, (err, api) => {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 3. معالجة الأحداث العامة (منع الكلام، الخ)
+    // 3. تشغيل جميع الأحداث (بما فيها منع الكلام)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // ✅ هذا القسم الجديد يشغل جميع الأحداث
     for (const [name, eventHandler] of events) {
       try {
-        if (eventHandler.handle && event.type !== 'message') {
+        if (eventHandler.handle) {
           eventHandler.handle({ api, event });
         }
       } catch (e) {
