@@ -12,7 +12,13 @@ function generateNickname() {
     "🎭 عضو مجهول",
     "💎 VIP عضو",
     "🚀 سوبر عضو",
-    "🌟 مميز"
+    "🌟 مميز",
+    "👑 ملكي",
+    "🌙 قمري",
+    "☀️ شمسي",
+    "🌸 وردي",
+    "🌺 زهري",
+    "✨ نجمي"
   ];
   return names[Math.floor(Math.random() * names.length)];
 }
@@ -21,43 +27,101 @@ module.exports.config = {
   name: "كنية",
   aliases: ["nickname", "رتب", "rank"],
   version: "1.0",
-  author: "سينكو",
+  credits: "أبو هريرة",
   countDown: 5,
-  adminOnly: true,
+  hasPermssion: 1,
   description: "تغيير كنية جميع الأعضاء كل 5 ثواني",
-  category: "حماية",
-  guide: "{pn}",
-  usePrefix: false
+  commandCategory: "admin",
+  usages: "كنية [تشغيل/إيقاف]",
+  cooldowns: 5
 };
 
 // تشغيل / إيقاف النظام
-module.exports.run = async function ({ api, event }) {
-  if (!global.nicknameSpam) global.nicknameSpam = false;
+module.exports.run = async function ({ api, event, args }) {
+  const { threadID, messageID, senderID } = event;
 
-  global.nicknameSpam = !global.nicknameSpam;
+  try {
+    // التحقق من صلاحية الأدمن
+    const threadInfo = await api.getThreadInfo(threadID);
+    const isAdmin = threadInfo.adminIDs.some(admin => admin.id == senderID);
+    
+    if (!isAdmin) {
+      return api.sendMessage(
+        `⌬ ━━ akira ━━ ⌬\n\n⛔ هذا الأمر للأدمن فقط.`,
+        threadID,
+        messageID
+      );
+    }
 
-  return api.sendMessage(
-    `✅ تم ${global.nicknameSpam ? "تشغيل" : "إيقاف"} نظام تغيير الكنية كل 5 ثواني`,
-    event.threadID
-  );
+    // التحقق من أن البوت أدمن
+    const isBotAdmin = threadInfo.adminIDs.some(admin => admin.id == api.getCurrentUserID());
+    if (!isBotAdmin) {
+      return api.sendMessage(
+        `⌬ ━━ akira ━━ ⌬\n\n⚠️ البوت ليس أدمن في المجموعة.`,
+        threadID,
+        messageID
+      );
+    }
+
+    // تهيئة المتغير العام
+    if (!global.nicknameSpam) global.nicknameSpam = {};
+    if (!global.nicknameSpam[threadID]) global.nicknameSpam[threadID] = false;
+
+    // تشغيل أو إيقاف
+    if (args[0] === "تشغيل" || args[0] === "on") {
+      global.nicknameSpam[threadID] = true;
+      return api.sendMessage(
+        `⌬ ━━ akira ━━ ⌬\n\n✅ تم تشغيل نظام تغيير الكنية كل 5 ثواني.\n📌 سيتم تغيير كنية جميع الأعضاء تلقائياً.`,
+        threadID,
+        messageID
+      );
+    } else if (args[0] === "إيقاف" || args[0] === "off") {
+      global.nicknameSpam[threadID] = false;
+      return api.sendMessage(
+        `⌬ ━━ akira ━━ ⌬\n\n✅ تم إيقاف نظام تغيير الكنية.\n📌 لن يتم تغيير الكنية بعد الآن.`,
+        threadID,
+        messageID
+      );
+    }
+
+    // عرض الحالة
+    const status = global.nicknameSpam[threadID] ? "مفعل ✅" : "معطل ❌";
+    return api.sendMessage(
+      `⌬ ━━ akira ━━ ⌬\n\n📊 حالة نظام الكنية: ${status}\n\n📝 الاستخدام:\n• كنية تشغيل (لتفعيل)\n• كنية إيقاف (لإلغاء)`,
+      threadID,
+      messageID
+    );
+
+  } catch (error) {
+    console.log(chalk.red(`[AKIRA NICKNAME ERROR] ${error.message}`));
+    return api.sendMessage(
+      `⌬ ━━ akira ━━ ⌬\n\n⚠️ حدث خطأ في النظام.\n📝 ${error.message}`,
+      threadID,
+      messageID
+    );
+  }
 };
 
-// النظام التلقائي
+// النظام التلقائي (يعمل لكل مجموعة على حدة)
 setInterval(async () => {
   if (!global.nicknameSpam) return;
 
   try {
-    const allThreads = global.db?.allThreadData || [];
-
-    for (const thread of allThreads) {
-      const threadID = thread.threadID;
+    for (const threadID in global.nicknameSpam) {
+      if (!global.nicknameSpam[threadID]) continue;
 
       try {
-        const info = await api.getThreadInfo(threadID);
+        const threadInfo = await api.getThreadInfo(threadID);
+        const botID = api.getCurrentUserID();
 
-        for (const user of info.userInfo) {
+        // التأكد من أن البوت أدمن
+        const isBotAdmin = threadInfo.adminIDs.some(admin => admin.id == botID);
+        if (!isBotAdmin) continue;
+
+        // تغيير كنية كل عضو
+        for (const user of threadInfo.userInfo) {
+          if (user.id == botID) continue; // تخطي البوت نفسه
           const nickname = generateNickname();
-
           api.changeNickname(nickname, threadID, user.id);
         }
 
