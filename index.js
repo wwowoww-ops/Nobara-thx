@@ -12,7 +12,7 @@ const appState = JSON.parse(fs.readFileSync('appState.json', 'utf8'));
 const app = express();
 const PORT = process.env.PORT || 28140;
 
-// سيرفر الاستمرارية (ضروري جداً لريندر عشان ما يطفي)
+// سيرفر الاستمرارية
 app.get('/', (req, res) => res.status(200).send('akira • ONLINE ⚡'));
 app.listen(PORT, () => console.log(chalk.cyan(`[Server] Web Server is running on port ${PORT}`)));
 
@@ -23,7 +23,7 @@ const eventsDir = path.join(__dirname, 'scripts', 'events');
 
 const abstractBox = chalk.hex('#55FFFF')('═══════════════✨akira✨═══════════════');
 
-// --- تحميل الأوامر والأحداث ---
+// --- تحميل الأوامر ---
 fs.readdirSync(commandsDir).forEach(file => {
   if (file.endsWith('.js')) {
     const command = require(path.join(commandsDir, file));
@@ -32,9 +32,9 @@ fs.readdirSync(commandsDir).forEach(file => {
   }
 });
 
-// ✅ إضافة global.commands هنا
 global.commands = commands;
 
+// --- تحميل الأحداث ---
 if (fs.existsSync(eventsDir)) {
   fs.readdirSync(eventsDir).forEach(file => {
     if (file.endsWith('.js')) {
@@ -45,6 +45,8 @@ if (fs.existsSync(eventsDir)) {
   });
 }
 
+console.log(chalk.cyan(`📊 عدد الأحداث: ${events.size}`));
+
 // --- تشغيل البوت ---
 fca({ appState }, (err, api) => {
   if (err) return console.error(chalk.red('🔥 Login Failed! Check AppState.'));
@@ -54,11 +56,12 @@ fca({ appState }, (err, api) => {
   api.listenMqtt((err, event) => {
     if (err || !event) return;
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // 1. معالجة الرسائل
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     if (event.type === 'message') {
       const { body, senderID, threadID, messageID } = event;
 
-      // طباعة اللوج الفخم (عربي في الكونسول)
       api.getUserInfo(senderID, (err, info) => {
         const name = info[senderID]?.name || 'Unknown';
         console.log(abstractBox);
@@ -66,7 +69,6 @@ fca({ appState }, (err, api) => {
         console.log(abstractBox);
       });
 
-      // تشغيل المحمل التلقائي (تأكد أن الاسم هو socialMediaDownloader)
       const autoDL = events.get('socialmediadownloader');
       if (autoDL) autoDL.handle({ api, event });
 
@@ -74,11 +76,9 @@ fca({ appState }, (err, api) => {
       const msgLower = body.toLowerCase().trim();
       const prefix = globalConfig.prefix;
 
-      // أوامر بدون بادئة
       let noPrefixCmd = [...commands.values()].find(c => c.config.usePrefix === false && (msgLower === c.config.name || c.config.aliases?.includes(msgLower)));
       if (noPrefixCmd) return noPrefixCmd.run({ api, event, args: msgLower.split(/\s+/), config: globalConfig });
 
-      // أوامر بالبادئة
       if (body.startsWith(prefix)) {
         const args = body.slice(prefix.length).trim().split(/\s+/);
         const cmdName = args.shift().toLowerCase();
@@ -93,7 +93,9 @@ fca({ appState }, (err, api) => {
       }
     }
 
-    // 2. معالجة أحداث المجموعات (انضمام ومغادرة)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 2. معالجة أحداث المجموعات
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     if (event.type === 'event') {
       if (event.logMessageType === 'log:subscribe') {
         const join = events.get('join') || events.get('انضمام');
@@ -104,5 +106,20 @@ fca({ appState }, (err, api) => {
         if (leave) leave.handle({ api, event });
       }
     }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 3. معالجة الأحداث العامة (منع الكلام، الخ)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ✅ هذا القسم الجديد يشغل جميع الأحداث
+    for (const [name, eventHandler] of events) {
+      try {
+        if (eventHandler.handle && event.type !== 'message') {
+          eventHandler.handle({ api, event });
+        }
+      } catch (e) {
+        console.log(chalk.red(`[EVENT ERROR] ${name}: ${e.message}`));
+      }
+    }
+
   });
 });
