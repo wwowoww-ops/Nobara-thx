@@ -1,17 +1,18 @@
 const os = require('os');
 const chalk = require('chalk');
+const fs = require('fs');
 
 module.exports.config = {
   name: "ابتايم",
-  aliases: ["ابتايم", "up", "السيرفر"],
+  aliases: ["up", "السيرفر"],
   version: "1.5",
-  author: "سينكو",
+  credits: "أبو هريرة",
   countDown: 5,
-  adminOnly: false,
-  description: "عرض إحصائيات السيرفر ووقت التشغيل في ريندر",
-  category: "نظام",
-  guide: "{pn}",
-  usePrefix: true
+  hasPermssion: 0,
+  description: "عرض إحصائيات السيرفر ووقت التشغيل",
+  commandCategory: "utility",
+  usages: "ابتايم",
+  cooldowns: 5
 };
 
 module.exports.run = async function({ api, event }) {
@@ -37,30 +38,46 @@ module.exports.run = async function({ api, event }) {
     const cpuModel = os.cpus()[0].model;
     const ping = Date.now() - event.timestamp;
 
-    const response = `
-[ إحصائيات بوت نوبارا ]
+    // عدد المجموعات
+    const config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
+    const botName = config.botName || "akira";
+    const adminName = config.adminName || "أبو هريرة";
 
-• وقت التشغيل: ${days} يوم، ${hours} ساعة، ${minutes} دقيقة
+    const response = `
+⌬ ━━ akira SYSTEM ━━ ⌬
+
+⏱️ وقت التشغيل:
+${days} يوم، ${hours} ساعة، ${minutes} دقيقة
+
+📊 الإحصائيات:
 • سرعة الاستجابة: ${ping}ms
 • الذاكرة المستخدمة: ${usedMemory.toFixed(2)} MB
-• إجمالي ذاكرة ريندر: ${totalMemory.toFixed(0)} MB
+• إجمالي الذاكرة: ${totalMemory.toFixed(0)} MB
 
+🖥️ النظام:
 • نظام التشغيل: ${platform} (${arch})
 • المعالج: ${cpuModel}
-• الحالة: متصل ونشط ⚡
 
-مطور النظام: سينكو
-    `.trim();
+🤖 البوت:
+• الاسم: ${botName}
+• المطور: ${adminName}
+• الحالة: 🟢 ONLINE
+
+⌬ ━━━━━━━━━━━━━━━━ ⌬`;
 
     api.sendMessage(response, threadID, () => {
       api.setMessageReaction("✅", messageID, () => {}, true);
     }, messageID);
 
-    console.log(chalk.green(`[Uptime] تم العرض بواسطة سينكو | ${days}d ${hours}h`));
+    console.log(chalk.green(`[AKIRA] ✅ تم عرض الإحصائيات`));
 
   } catch (error) {
-    console.log(chalk.red(`[Error] ${error.message}`));
+    console.log(chalk.red(`[AKIRA ERROR] ${error.message}`));
     api.setMessageReaction("❌", messageID, () => {}, true);
-    api.sendMessage("⚠️ فشل جلب إحصائيات السيرفر.", threadID, messageID);
+    api.sendMessage(
+      `⌬ ━━ akira ━━ ⌬\n\n⚠️ فشل جلب إحصائيات السيرفر.\n📝 ${error.message}`,
+      threadID,
+      messageID
+    );
   }
 };
